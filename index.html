@@ -3,118 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مكوّن الجمل الذكي - الإصدار V6</title>
+    <meta name="theme-color" content="#4f46e5">
+    <title>مكوّن الجمل الذكي - V8</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="style.css">
-    
-    <!-- مكتبات معالجة ملفات Excel و Word و FileSaver واجهات CDN آمنة -->
-    <script src="https://jsdelivr.net"></script>
-    <script src="https://jsdelivr.net"></script>
-    <script src="https://jsdelivr.net"></script>
-    
-    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22%D9%85%D9%83%D9%88%D9%86%20%D8%A7%D9%84%D8%AC%D9%85%D9%84%20%D8%A7%D9%84%D8%B0%D9%83%D9%8A%22,%22short_name%22:%22%D8%A7%D9%84%D8%AC%D9%85%D9%84%20%D8%A7%D9%84%D8%B0%D9%83%D9%8A%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%234f46e5%22}" />
+    <!-- مكتبات Excel و Word تُحمَّل عند الحاجة فقط (أسرع في الفتح) -->
 </head>
 <body>
 
 <div class="container">
     <div class="lang-switch">
-        <span id="version-badge" class="version-tag">إصدار V6</span>
-        <span id="score-badge" class="score-tag">🏆 النقاط: 0 | مستوى: 1</span>
-        <button class="theme-toggle-btn" id="btn-theme" onclick="toggleTheme()">🌙 الوضع الداكن</button>
-        <button class="lang-btn" id="btn-apk" onclick="installAsAPK()">تنزيل كتطبيق أندرويد 📱</button>
+        <span id="version-badge" class="version-tag"></span>
+        <span id="score-badge" class="score-tag" aria-live="polite"></span>
+        <button class="icon-btn" id="btn-sound" onclick="toggleSound()" aria-label="sound"></button>
+        <button class="theme-toggle-btn" id="btn-theme" onclick="toggleTheme()"></button>
+        <button class="lang-btn" id="btn-apk" onclick="installAsAPK()" data-i18n="apk"></button>
         <button class="lang-btn active" id="btn-ar" onclick="setLanguage('ar')">العربية</button>
         <button class="lang-btn" id="btn-en" onclick="setLanguage('en')">English</button>
     </div>
 
-    <h1 id="main-title">مكوّن الجمل العشوائي القواعدي 🎲</h1>
-    
-    <div class="tabs">
-        <button class="tab-btn active" id="tab-game" onclick="switchTab('game')">اللعب والادخال</button>
-        <button class="tab-btn" id="tab-io" onclick="switchTab('io')">الرفع وإدارة الملفات النموذجية</button>
+    <h1 id="main-title" data-i18n="title"></h1>
+
+    <div class="tabs" role="tablist">
+        <button class="tab-btn active" id="tab-game" role="tab" onclick="switchTab('game')" data-i18n="tabGame"></button>
+        <button class="tab-btn" id="tab-io" role="tab" onclick="switchTab('io')" data-i18n="tabIo"></button>
     </div>
 
     <div id="content-game" class="tab-content active">
-        <div id="stats" class="stats-badge">المخزون الحالي: 0 بنات | 0 أفعال | 0 أعضاء جسم | 0 شباب</div>
-
-        <div class="grid-inputs">
-            <div class="column-box">
-                <h3 id="lbl-girls">👧 أسماء بنات</h3>
-                <div class="input-group">
-                    <input type="text" class="girl-in" id="girl-manual-input" placeholder="اسم جديد">
-                    <button class="btn-inline" onclick="addSingleManual('girl-manual-input', 'girls')">حفظ وتحديث القائمة ➕</button>
-                    <select class="girl-select" id="girl-sel" onchange="applySelectValue(this, 'girl-manual-input')"></select>
-                </div>
-            </div>
-            <div class="column-box">
-                <h3 id="lbl-verbs">⚡ أفعال (جذر مذكر)</h3>
-                <div class="input-group">
-                    <input type="text" class="verb-in" id="verb-manual-input" placeholder="فعل جديد">
-                    <button class="btn-inline" onclick="addSingleManual('verb-manual-input', 'verbs')">حفظ وتحديث القائمة ➕</button>
-                    <select class="verb-select" id="verb-sel" onchange="applySelectValue(this, 'verb-manual-input')"></select>
-                </div>
-            </div>
-            <div class="column-box">
-                <h3 id="lbl-body">💪 أعضاء جسم</h3>
-                <div class="input-group">
-                    <input type="text" class="body-in" id="body-manual-input" placeholder="عضو جديد">
-                    <button class="btn-inline" onclick="addSingleManual('body-manual-input', 'bodyParts')">حفظ وتحديث القائمة ➕</button>
-                    <select class="body-select" id="body-sel" onchange="applySelectValue(this, 'body-manual-input')"></select>
-                </div>
-            </div>
-            <div class="column-box">
-                <h3 id="lbl-boys">👦 أسماء شباب</h3>
-                <div class="input-group">
-                    <input type="text" class="boy-in" id="boy-manual-input" placeholder="اسم جديد">
-                    <button class="btn-inline" onclick="addSingleManual('boy-manual-input', 'boys')">حفظ وتحديث القائمة ➕</button>
-                    <select class="boy-select" id="boy-sel" onchange="applySelectValue(this, 'boy-manual-input')"></select>
-                </div>
-            </div>
-        </div>
+        <p class="hint" data-i18n="hint"></p>
+        <div class="grid-inputs" id="columns"></div>
 
         <div class="buttons-panel">
-            <button class="btn-mix-current" id="btn-mix-curr" onclick="mixCurrentRound()">توزيع عشوائي للمخرجات 🔀</button>
-            <button class="btn-mix-all" id="btn-mix-all" onclick="mixAllStorage()">إعادة التوزيع الشامل للمخزن 🔄</button>
-            <button class="btn-clear" id="btn-clear" onclick="clearAllData()">إعادة تعيين ومسح كافة المدخلات والمخزن 🗑️</button>
+            <button class="btn-mix-current" id="btn-mix-curr" onclick="mixCurrentRound()" data-i18n="mixCurr"></button>
+            <button class="btn-mix-all" id="btn-mix-all" onclick="mixAllStorage()" data-i18n="mixAll"></button>
+            <button class="btn-copy" id="btn-copy-all" onclick="copyAll()" data-i18n="copyAll"></button>
+            <button class="btn-clear" id="btn-clear" onclick="clearAllData()" data-i18n="clear"></button>
         </div>
     </div>
 
     <div id="content-io" class="tab-content">
         <div class="io-section">
-            <h4 id="lbl-download-samples">تنزيل ملف نموذجي Excel للمدخلات (دون تكرار)</h4>
+            <h4 data-i18n="sampleTitle"></h4>
             <div class="download-grid">
-                <button class="btn-download sample-btn" onclick="downloadSampleExcel('girls')">نموذج البنات 👧</button>
-                <button class="btn-download sample-btn" onclick="downloadSampleExcel('verbs')">نموذج الأفعال ⚡</button>
-                <button class="btn-download sample-btn" onclick="downloadSampleExcel('bodyParts')">نموذج الأعضاء 💪</button>
-                <button class="btn-download sample-btn" onclick="downloadSampleExcel('boys')">نموذج الشباب 👦</button>
+                <button class="btn-download sample-btn" onclick="downloadSampleExcel('girls')" data-i18n="sampleGirls"></button>
+                <button class="btn-download sample-btn" onclick="downloadSampleExcel('verbs')" data-i18n="sampleVerbs"></button>
+                <button class="btn-download sample-btn" onclick="downloadSampleExcel('bodyParts')" data-i18n="sampleBody"></button>
+                <button class="btn-download sample-btn" onclick="downloadSampleExcel('boys')" data-i18n="sampleBoys"></button>
             </div>
         </div>
 
         <div class="io-section">
-            <h4 id="lbl-upload-title">رفع قائمة ملفات البيانات المجهزة</h4>
-            <select id="upload-target" style="margin-bottom: 10px;">
-                <option value="girls">الأسماء للبنات (Girls)</option>
-                <option value="verbs">الأفعال الجذعية (Verbs)</option>
-                <option value="bodyParts">أعضاء الجسم (Body Parts)</option>
-                <option value="boys">الأسماء للشباب (Boys)</option>
+            <h4 data-i18n="uploadTitle"></h4>
+            <p class="hint" data-i18n="uploadHint"></p>
+            <select id="upload-target" aria-label="target list">
+                <option value="girls" data-i18n="optGirls"></option>
+                <option value="verbs" data-i18n="optVerbs"></option>
+                <option value="bodyParts" data-i18n="optBody"></option>
+                <option value="boys" data-i18n="optBoys"></option>
             </select>
-            <input type="file" id="file-uploader" accept=".xlsx, .xls, .txt" onchange="handleUniversalUpload(event)">
+            <input type="file" id="file-uploader" accept=".xlsx,.xls,.txt,.csv" onchange="handleUniversalUpload(event)">
         </div>
-        
+
         <div class="io-section">
-            <h4 id="lbl-download-title">تنزيل المخرجات والجمل النهائية وتحديثات النسخة</h4>
+            <h4 data-i18n="downloadTitle"></h4>
+            <button class="btn-all" onclick="downloadAll()" data-i18n="dlAll"></button>
             <div class="download-grid">
-                <button class="btn-download" onclick="downloadTXT()">ملف نصي TXT 📄</button>
-                <button class="btn-download" onclick="downloadExcel()">ملف إكسل Excel 📊</button>
-                <button class="btn-download" onclick="downloadWord()">ملف وورد Word 📝</button>
-                <button class="btn-update" style="grid-column: span 3; background-color: var(--primary);" onclick="checkForLatestUpdates()">تحديث الصفحة وجلب آخر التعديلات من السيرفر الرئيسي 🔄</button>
+                <button class="btn-download" onclick="downloadTXT()" data-i18n="dlTxt"></button>
+                <button class="btn-download" onclick="downloadExcel()" data-i18n="dlExcel"></button>
+                <button class="btn-download" onclick="downloadWord()" data-i18n="dlWord"></button>
+                <button class="btn-update" onclick="checkForLatestUpdates()" data-i18n="update"></button>
             </div>
         </div>
     </div>
 </div>
 
 <div class="results-container">
-    <h2 id="result-title">الجمل المتولدة ستظهر هنا...</h2>
+    <h2 id="result-title"></h2>
     <div id="results-list"></div>
 </div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="script.js"></script>
 </body>
