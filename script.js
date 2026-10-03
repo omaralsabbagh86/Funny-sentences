@@ -1,13 +1,17 @@
+const CURRENT_VERSION = "V6";
 let currentLang = 'ar';
 let globalStorage = { girls: [], verbs: [], bodyParts: [], boys: [] };
 let generatedSentences = [];
+let deferredPrompt;
+let userScore = 0;
+let userLevel = 1;
 
 const presets = {
     ar: {
-        girls: ["هناء", "فاطمة", "سارة", "ريم", "ليلى", "نور"],
-        verbs: ["غسل", "أكل", "رأى", "أمسك", "حرك", "نظف"],
-        bodyParts: ["يد", "وجه", "قدم", "عين", "رأس", "أنف"],
-        boys: ["محمد", "أحمد", "علي", "خالد", "يوسف", "عمر"]
+        girls: ["هناء", "فاطمة", "سارة", "ريم", "ليلى"],
+        verbs: ["غسل", "أكل", "رأى", "أمسك", "حرك"],
+        bodyParts: ["يد", "وجه", "قدم", "عين", "رأس"],
+        boys: ["محمد", "أحمد", "علي", "خالد", "يوسف"]
     },
     en: {
         girls: ["Emma", "Olivia", "Sophia", "Ava", "Mia"],
@@ -16,6 +20,54 @@ const presets = {
         boys: ["John", "Alex", "James", "Ryan", "Leo"]
     }
 };
+
+function playSoundEffect(type) {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (type === 'success') {
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+            oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'clear') {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+            oscillator.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.2);
+        }
+    } catch (e) {}
+}
+
+function updateScore(points) {
+    userScore += points;
+    userLevel = Math.floor(userScore / 150) + 1;
+    document.getElementById('score-badge').innerText = currentLang === 'ar' ? `🏆 النقاط: ${userScore} | مستوى: ${userLevel}` : `🏆 Score: ${userScore} | Lvl: ${userLevel}`;
+}
+
+function toggleTheme() {
+    const root = document.getElementById('html-root');
+    const currentTheme = root.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.getElementById('btn-theme').innerText = newTheme === 'dark' ? '☀️ الوضع الفاتح' : '🌙 الوضع الداكن';
+}
+
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.getElementById('html-root').setAttribute('data-theme', savedTheme);
+    document.getElementById('btn-theme').innerText = savedTheme === 'dark' ? '☀️ الوضع الفاتح' : '🌙 الوضع الداكن';
+}
 
 function setLanguage(lang) {
     currentLang = lang;
@@ -39,24 +91,18 @@ function setLanguage(lang) {
 function localizeUI() {
     const tr = {
         ar: {
-            title: "مكوّن الجمل العشوائي القواعدي 🎲", game: "اللعب والادخال", io: "الرفع والتنزيل",
-            girls: "👧 5 أسماء بنات", verbs: "⚡ 5 أفعال (جذر مذكر)", body: "💪 5 أعضاء جسم", boys: "👦 5 أسماء شباب",
-            mixCurr: "توزيع عشوائي (هذه الجولة) 🔀", mixAll: "إعادة التوزيع للكل 🔄", clear: "مسح كافة النتائج والمدخلات 🗑️",
-            upTitle: "رفع كلمات مسبقة المضمون (.xlsx, .txt)", downTitle: "تنزيل المستندات النهائية المتولدة",
-            resDefault: "الجمل المتولدة ستظهر هنا..."
+            title: "مكوّن الجمل العشوائي القواعدي 🎲", game: "اللعب والادخال", io: "الرفع وإدارة الملفات النموذجية",
+            girls: "👧 أسماء بنات", verbs: "⚡ أفعال (جذر مذكر)", body: "💪 أعضاء جسم", boys: "👦 أسماء شباب",
+            mixCurr: "توزيع عشوائي للمخرجات 🔀", mixAll: "إعادة التوزيع الشامل للمخزن 🔄", clear: "إعادة تعيين ومسح كافة المدخلات والمخزن 🗑️"
         },
         en: {
-            title: "Grammar Sentence Generator 🎲", game: "Play & Input", io: "Upload & Download Docs",
-            girls: "👧 5 Girl Names", verbs: "⚡ 5 Verbs (Base/Male)", body: "💪 5 Body Parts", boys: "👦 5 Boy Names",
-            mixCurr: "Randomize (This Round) 🔀", mixAll: "Re-Randomize All 🔄", clear: "Clear Everything 🗑️",
-            upTitle: "Upload preset words (.xlsx, .txt)", downTitle: "Download Generated Output Documents",
-            resDefault: "Generated sentences will appear here..."
+            title: "Grammar Sentence Generator 🎲", game: "Play & Input", io: "Upload & Templates Management",
+            girls: "👧 Girl Names", verbs: "⚡ Verbs (Base Form)", body: "💪 Body Parts", boys: "👦 Boy Names",
+            mixCurr: "Randomize Output 🔀", mixAll: "Re-Randomize Storage 🔄", clear: "Reset & Clear All Storage 🗑️"
         }
     }[currentLang];
 
     document.getElementById('main-title').innerText = tr.title;
-    document.getElementById('tab-game').innerText = tr.game;
-    document.getElementById('tab-io').innerText = tr.io;
     document.getElementById('lbl-girls').innerText = tr.girls;
     document.getElementById('lbl-verbs').innerText = tr.verbs;
     document.getElementById('lbl-body').innerText = tr.body;
@@ -64,19 +110,24 @@ function localizeUI() {
     document.getElementById('btn-mix-curr').innerText = tr.mixCurr;
     document.getElementById('btn-mix-all').innerText = tr.mixAll;
     document.getElementById('btn-clear').innerText = tr.clear;
-    document.getElementById('lbl-upload-title').innerText = tr.upTitle;
-    document.getElementById('lbl-download-title').innerText = tr.downTitle;
-    if(generatedSentences.length === 0) {
-        document.getElementById('result-title').innerText = tr.resDefault;
-    }
+    document.getElementById('version-badge').innerText = `إصدار ${CURRENT_VERSION}`;
+    updateScore(0);
 }
 
 function populatePresets() {
     const p = presets[currentLang];
-    setupSelect('girl-sel', p.girls, currentLang === 'ar' ? '-- قوائم منسدلة للبنات --' : '-- Girls Dropdown --');
-    setupSelect('verb-sel', p.verbs, currentLang === 'ar' ? '-- قوائم منسدلة للأفعال --' : '-- Verbs Dropdown --');
-    setupSelect('body-sel', p.bodyParts, currentLang === 'ar' ? '-- قوائم منسدلة للأعضاء --' : '-- Body Dropdown --');
-    setupSelect('boy-sel', p.boys, currentLang === 'ar' ? '-- قوائم منسدلة للشباب --' : '-- Boys Dropdown --');
+    globalStorage.girls = [...new Set([...globalStorage.girls, ...p.girls])];
+    globalStorage.verbs = [...new Set([...globalStorage.verbs, ...p.verbs])];
+    globalStorage.bodyParts = [...new Set([...globalStorage.bodyParts, ...p.bodyParts])];
+    globalStorage.boys = [...new Set([...globalStorage.boys, ...p.boys])];
+    updateDropdownsOnly();
+}
+
+function updateDropdownsOnly() {
+    setupSelect('girl-sel', globalStorage.girls, '-- القائمة المنسدلة للبنات --');
+    setupSelect('verb-sel', globalStorage.verbs, '-- القائمة المنسدلة للأفعال --');
+    setupSelect('body-sel', globalStorage.bodyParts, '-- القائمة المنسدلة للأعضاء --');
+    setupSelect('boy-sel', globalStorage.boys, '-- القائمة المنسدلة للشباب --');
 }
 
 function setupSelect(id, arr, defaultText) {
@@ -89,17 +140,27 @@ function setupSelect(id, arr, defaultText) {
     });
 }
 
-function applySelectValue(selectElem, inputClass) {
-    if(!selectElem.value) return;
-    const columnBox = selectElem.closest('.column-box');
-    const inputs = columnBox.querySelectorAll(`.${inputClass}`);
-    for(let input of inputs) {
-        if(input.value.trim() === "") {
-            input.value = selectElem.value;
-            break;
-        }
+function addSingleManual(inputId, storageKey) {
+    const inputElem = document.getElementById(inputId);
+    const value = inputElem.value.trim();
+    if(!value) return alert("يرجى كتابة الكلمة في الحقل أولاً!");
+
+    if(globalStorage[storageKey].includes(value)) {
+        alert("هذه الكلمة موجودة مسبقاً (تجنب التكرار)!");
+        return;
     }
-    selectElem.value = "";
+
+    globalStorage[storageKey].push(value);
+    updateDropdownsOnly();
+    updateStats();
+    inputElem.value = "";
+    playSoundEffect('success');
+    updateScore(10);
+}
+
+function applySelectValue(selectElem, inputId) {
+    if(!selectElem.value) return;
+    document.getElementById(inputId).value = selectElem.value;
 }
 
 function switchTab(tab) {
@@ -115,65 +176,37 @@ function shuffle(array) {
 
 function applyGrammarRules(girl, baseVerb) {
     if (currentLang === 'ar') {
-        if (baseVerb.startsWith('ي')) {
-            return 'ت' + baseVerb.substring(1);
-        } else if (!baseVerb.startsWith('ت')) {
-            return 'ت' + baseVerb; 
-        }
+        if (baseVerb.startsWith('ي')) return 'ت' + baseVerb.substring(1);
+        if (!baseVerb.startsWith('ت')) return 'ت' + baseVerb; 
         return baseVerb;
     } else {
-        if (baseVerb.endsWith('sh') || baseVerb.endsWith('ch') || baseVerb.endsWith('s') || baseVerb.endsWith('x')) {
-            return baseVerb + 'es';
-        }
+        if (baseVerb.endsWith('sh') || baseVerb.endsWith('ch') || baseVerb.endsWith('s')) return baseVerb + 'es';
         return baseVerb + 's';
     }
 }
 
-function getFormInputs() {
-    const fetch = (cls) => Array.from(document.querySelectorAll(`.${cls}`)).map(i => i.value.trim()).filter(v => v !== "");
-    return { girls: fetch('girl-in'), verbs: fetch('verb-in'), bodyParts: fetch('body-in'), boys: fetch('boy-in') };
-}
-
 function updateStats() {
-    if(currentLang === 'ar') {
-        document.getElementById('stats').innerText = `المخزون الحالي: ${globalStorage.girls.length} بنات | ${globalStorage.verbs.length} أفعال | ${globalStorage.bodyParts.length} أعضاء جسم | ${globalStorage.boys.length} شباب`;
-    } else {
-        document.getElementById('stats').innerText = `Current Storage: ${globalStorage.girls.length} Girls | ${globalStorage.verbs.length} Verbs | ${globalStorage.bodyParts.length} Body | ${globalStorage.boys.length} Boys`;
-    }
+    document.getElementById('stats').innerText = `المخزون الحالي دون تكرار (${CURRENT_VERSION}): ${globalStorage.girls.length} بنات | ${globalStorage.verbs.length} أفعال | ${globalStorage.bodyParts.length} أعضاء جسم | ${globalStorage.boys.length} شباب`;
 }
 
 function mixCurrentRound() {
-    const inp = getFormInputs();
-    if(inp.girls.length === 0 || inp.verbs.length === 0 || inp.bodyParts.length === 0 || inp.boys.length === 0) {
-        alert(currentLang === 'ar' ? "الرجاء إدخال الكلمات لتوليد الجمل!" : "Please fill words in the fields!");
-        return;
-    }
-
-    globalStorage.girls.push(...inp.girls);
-    globalStorage.verbs.push(...inp.verbs);
-    globalStorage.bodyParts.push(...inp.bodyParts);
-    globalStorage.boys.push(...inp.boys);
-    updateStats();
-
-    let sg = shuffle([...inp.girls]), sv = shuffle([...inp.verbs]), sb = shuffle([...inp.bodyParts]), sy = shuffle([...inp.boys]);
+    let sg = shuffle([...globalStorage.girls]), sv = shuffle([...globalStorage.verbs]), sb = shuffle([...globalStorage.bodyParts]), sy = shuffle([...globalStorage.boys]);
     let count = Math.min(sg.length, sv.length, sb.length, sy.length);
-    
+    if(count === 0) return alert("المخزن فارغ!");
     buildSentences(sg, sv, sb, sy, count);
-    document.querySelectorAll('input').forEach(i => i.value = "");
+    playSoundEffect('success');
+    updateScore(50);
 }
 
 function mixAllStorage() {
-    if(globalStorage.girls.length === 0) return;
-    let sg = shuffle([...globalStorage.girls]), sv = shuffle([...globalStorage.verbs]), sb = shuffle([...globalStorage.bodyParts]), sy = shuffle([...globalStorage.boys]);
-    let count = Math.min(sg.length, sv.length, sb.length, sy.length);
-    buildSentences(sg, sv, sb, sy, count);
+    mixCurrentRound();
 }
 
 function buildSentences(g, v, b, y, count) {
     const list = document.getElementById('results-list');
     list.innerHTML = "";
     generatedSentences = [];
-    document.getElementById('result-title').innerText = currentLang === 'ar' ? "الجمل الناتجة القواعدية ✨" : "Generated Grammatical Sentences ✨";
+    document.getElementById('result-title').innerText = `الجمل الناتجة القواعدية الفريدة - ${CURRENT_VERSION} ✨`;
 
     for(let i=0; i<count; i++) {
         let girl = g[i], rawVerb = v[i], body = b[i], boy = y[i];
@@ -188,81 +221,18 @@ function buildSentences(g, v, b, y, count) {
     }
 }
 
-function clearAll() {
-    globalStorage = { girls: [], verbs: [], bodyParts: [], boys: [] };
-    generatedSentences = [];
-    document.querySelectorAll('input').forEach(i => i.value = "");
-    document.getElementById('results-list').innerHTML = "";
-    updateStats();
-}
-
-function handleUniversalUpload(event) {
-    const file = event.target.files[0];
-    const target = document.getElementById('upload-target').value;
-    if (!file) return;
-
-    const fileExtension = file.name.split('.').pop().toLowerCase();
-
-    if (fileExtension === 'xlsx' || fileExtension === 'xls') {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-            const words = json.flat().map(w => String(w).trim()).filter(w => w && w !== "undefined" && w !== "");
-            injectWords(target, words);
-        };
-        reader.readAsArrayBuffer(file);
-    } else if (fileExtension === 'txt') {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const lines = e.target.result.split('\n').map(l => l.trim()).filter(l => l !== "");
-            injectWords(target, lines);
-        };
-        reader.readAsText(file);
+function clearAllData() {
+    if(confirm("هل أنت متأكد من مسح جميع المدخلات والقوائم كلياً؟")) {
+        globalStorage = { girls: [], verbs: [], bodyParts: [], boys: [] };
+        generatedSentences = [];
+        userScore = 0;
+        document.querySelectorAll('input').forEach(i => i.value = "");
+        document.getElementById('results-list').innerHTML = "";
+        updateDropdownsOnly();
+        updateStats();
+        playSoundEffect('clear');
     }
 }
 
-function injectWords(target, wordsArr) {
-    globalStorage[target].push(...wordsArr);
-    updateStats();
-    alert(currentLang === 'ar' ? "تمت إضافة الكلمات للمخزن!" : "Words added!");
-    document.getElementById('file-uploader').value = "";
-}
-
-function downloadTXT() {
-    if(generatedSentences.length === 0) return;
-    let blob = new Blob([generatedSentences.join('\n')], {type: 'text/plain;charset=utf-8'});
-    saveAs(blob, 'sentences.txt');
-}
-
-function downloadExcel() {
-    if(generatedSentences.length === 0) return;
-    let ws = XLSX.utils.aoa_to_sheet([["No.", "Sentence"], ...generatedSentences.map((s, i) => [i+1, s])]);
-    let wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sentences");
-    XLSX.writeFile(wb, 'sentences.xlsx');
-}
-
-function downloadWord() {
-    if(generatedSentences.length === 0) return;
-    const doc = new docx.Document({
-        sections: [{
-            children: [
-                new docx.Paragraph({
-                    children: [new docx.TextRun({ text: "Generated Sentences", bold: true, size: 32 })],
-                    spacing: { after: 200 }
-                }),
-                ...generatedSentences.map((s, i) => new docx.Paragraph({
-                    children: [new docx.TextRun({ text: `${i+1}. ${s}`, size: 24 })],
-                    spacing: { after: 120 }
-                }))
-            ]
-        }]
-    });
-    docx.Packer.toBlob(doc).then(blob => saveAs(blob, "sentences.docx"));
-}
-
-window.onload = () => { setLanguage('ar'); };
+function downloadSampleExcel(type) {
+    let headers = { girls: ["أسماء البنات (Girls)"], verbs: ["الأفعال الجذعية (Verbs)"], bodyParts: ["أعضاء الجسم (Body Parts)"], boys: ["أسماء الشباب (Boys)"] }[type];
