@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#4f46e5">
-    <title>مكوّن الجمل الذكي - V8</title>
+    <title>مكوّن الجمل الذكي - V9</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="style.css">
@@ -39,6 +39,7 @@
             <button class="btn-mix-all" id="btn-mix-all" onclick="mixAllStorage()" data-i18n="mixAll"></button>
             <button class="btn-copy" id="btn-copy-all" onclick="copyAll()" data-i18n="copyAll"></button>
             <button class="btn-clear" id="btn-clear" onclick="clearAllData()" data-i18n="clear"></button>
+            <button class="btn-reload" id="btn-reload" onclick="reloadDefaults()" data-i18n="reload" hidden></button>
         </div>
     </div>
 
@@ -46,10 +47,10 @@
         <div class="io-section">
             <h4 data-i18n="sampleTitle"></h4>
             <div class="download-grid">
-                <button class="btn-download sample-btn" onclick="downloadSampleExcel('girls')" data-i18n="sampleGirls"></button>
-                <button class="btn-download sample-btn" onclick="downloadSampleExcel('verbs')" data-i18n="sampleVerbs"></button>
-                <button class="btn-download sample-btn" onclick="downloadSampleExcel('bodyParts')" data-i18n="sampleBody"></button>
                 <button class="btn-download sample-btn" onclick="downloadSampleExcel('boys')" data-i18n="sampleBoys"></button>
+                <button class="btn-download sample-btn" onclick="downloadSampleExcel('girls')" data-i18n="sampleGirls"></button>
+                <button class="btn-download sample-btn" onclick="downloadSampleExcel('bodyParts')" data-i18n="sampleBody"></button>
+                <button class="btn-download sample-btn" onclick="downloadSampleExcel('verbs')" data-i18n="sampleVerbs"></button>
             </div>
         </div>
 
@@ -57,10 +58,10 @@
             <h4 data-i18n="uploadTitle"></h4>
             <p class="hint" data-i18n="uploadHint"></p>
             <select id="upload-target" aria-label="target list">
-                <option value="girls" data-i18n="optGirls"></option>
-                <option value="verbs" data-i18n="optVerbs"></option>
-                <option value="bodyParts" data-i18n="optBody"></option>
                 <option value="boys" data-i18n="optBoys"></option>
+                <option value="girls" data-i18n="optGirls"></option>
+                <option value="bodyParts" data-i18n="optBody"></option>
+                <option value="verbs" data-i18n="optVerbs"></option>
             </select>
             <input type="file" id="file-uploader" accept=".xlsx,.xls,.txt,.csv" onchange="handleUniversalUpload(event)">
         </div>
@@ -74,6 +75,12 @@
                 <button class="btn-download" onclick="downloadWord()" data-i18n="dlWord"></button>
                 <button class="btn-update" onclick="checkForLatestUpdates()" data-i18n="update"></button>
             </div>
+        </div>
+
+        <div class="io-section">
+            <h4 data-i18n="apkTitle"></h4>
+            <p class="hint" data-i18n="apkHint"></p>
+            <button class="btn-apk" onclick="downloadAPK()" data-i18n="apkBtn"></button>
         </div>
     </div>
 </div>

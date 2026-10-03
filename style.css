@@ -213,6 +213,9 @@ button:active { transform: scale(.97); }
 .btn-mix-all { background-color: var(--warning); }
 .btn-copy { background-color: #0ea5e9; }
 .btn-clear { background-color: var(--danger); grid-column: 1 / -1; }
+.btn-reload { background-color: var(--success); grid-column: 1 / -1; padding: 14px; font-size: 15px; }
+.btn-apk { display: block; width: 100%; background: linear-gradient(135deg, #16a34a, #0d9488); padding: 14px; font-size: 16px; }
+[hidden] { display: none !important; }
 
 .results-container h2 { margin: 0 0 12px; font-size: 18px; color: var(--primary); }
 

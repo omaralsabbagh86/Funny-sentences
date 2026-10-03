@@ -1,12 +1,20 @@
-const CURRENT_VERSION = "V8";
+const CURRENT_VERSION = "V9";
 const KEYS = ['girls', 'verbs', 'bodyParts', 'boys'];
+// ترتيب الأقسام في الواجهة: الشباب ← البنات ← أعضاء الجسم ← الأفعال
 const COLUMNS = [
+    { key: 'boys',      title: 'boys',  ph: 'phName' },
     { key: 'girls',     title: 'girls', ph: 'phName' },
-    { key: 'verbs',     title: 'verbs', ph: 'phVerb' },
     { key: 'bodyParts', title: 'body',  ph: 'phBody' },
-    { key: 'boys',      title: 'boys',  ph: 'phName' }
+    { key: 'verbs',     title: 'verbs', ph: 'phVerb' }
 ];
 const LS_KEY = 'sgb_state_v7';
+
+// ملف الـ APK الجاهز للتنزيل: ضعه في المستودع بجانب index.html (أو ضع رابط Release كاملاً هنا)
+const APK_URL = 'sentence-generator.apk';
+
+// مصدر القيم الافتراضية على GitHub (يُقرأ منه كائن presets داخل script.js).
+// اتركها فارغة ليتم اكتشاف المستودع تلقائياً من رابط GitHub Pages (https://USER.github.io/REPO/).
+const GITHUB_SOURCE = { owner: '', repo: '', branch: 'main', file: 'script.js' };
 const MAX_CHIPS = 300;
 const LIBS = {
     XLSX: 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
@@ -23,7 +31,7 @@ let soundOn = true;
 let audioCtx = null;
 
 // كل لغة لها مخزنها الخاص حتى لا تختلط الكلمات العربية بالإنجليزية
-const presets = {
+let presets = {
     ar: {
         girls: ["هناء", "فاطمة", "سارة", "ريم", "ليلى"],
         verbs: ["يغسل", "يأكل", "يرى", "يمسك", "يحرك"],   // مضارع مذكر -> يتحول تلقائياً للمؤنث
@@ -37,6 +45,8 @@ const presets = {
         boys: ["John", "Alex", "James", "Ryan", "Leo"]
     }
 };
+
+const BUILTIN_PRESETS = JSON.parse(JSON.stringify(presets));
 
 const SHEET_HEADERS = {
     ar: { girls: "أسماء البنات (Girls)", verbs: "الأفعال الجذعية (Verbs)", bodyParts: "أعضاء الجسم (Body Parts)", boys: "أسماء الشباب (Boys)" },
@@ -65,6 +75,16 @@ const I18N = {
         remove: w => `حذف ${w}`,
         mixCurr: "🎲 ولّد جملاً جديدة", mixAll: "إعادة التوزيع الشامل 🔄", copyAll: "نسخ كل الجمل 📋",
         clear: "مسح كل المدخلات 🗑️",
+        confirmClear: "هل أنت متأكد من مسح جميع المدخلات في كل القوائم؟\nيمكنك لاحقاً إعادة تحميل القيم الافتراضية.",
+        reload: "إعادة تحميل القيم الافتراضية 🔄",
+        defaultsGithub: n => `تم تحميل ${n} كلمة افتراضية من مشروع GitHub ✅`,
+        defaultsLocal: n => `تم تحميل ${n} كلمة افتراضية من ملفات المشروع ✅`,
+        defaultsBuiltin: n => `تعذر الوصول إلى GitHub، تم استخدام القيم المدمجة (${n} كلمة).`,
+        apkTitle: "تطبيق أندرويد",
+        apkBtn: "تنزيل ملف APK للتثبيت ⬇️",
+        apkHint: "بعد التنزيل افتح الملف على هاتفك، واسمح بالتثبيت من هذا المصدر إذا طُلب منك ذلك.",
+        apkStarted: "بدأ تنزيل ملف APK ✅",
+        apkMissing: "ملف APK غير موجود في المشروع بعد. ارفع الملف sentence-generator.apk إلى مستودع GitHub بجانب index.html.",
         sampleTitle: "تنزيل ملف Excel نموذجي للمدخلات",
         sampleGirls: "نموذج البنات 👧", sampleVerbs: "نموذج الأفعال ⚡", sampleBody: "نموذج الأعضاء 💪", sampleBoys: "نموذج الشباب 👦",
         uploadTitle: "رفع قائمة كلمات جاهزة",
@@ -111,6 +131,16 @@ const I18N = {
         remove: w => `Remove ${w}`,
         mixCurr: "🎲 Generate new sentences", mixAll: "Re-Randomize Everything 🔄", copyAll: "Copy all sentences 📋",
         clear: "Clear all inputs 🗑️",
+        confirmClear: "Are you sure you want to clear all inputs in every list?\nYou can reload the default values afterwards.",
+        reload: "Reload default values 🔄",
+        defaultsGithub: n => `Loaded ${n} default words from the GitHub project ✅`,
+        defaultsLocal: n => `Loaded ${n} default words from the project files ✅`,
+        defaultsBuiltin: n => `Couldn't reach GitHub, used the built-in values (${n} words).`,
+        apkTitle: "Android app",
+        apkBtn: "Download APK installation file ⬇️",
+        apkHint: "After downloading, open the file on your phone and allow installing from this source if asked.",
+        apkStarted: "APK download started ✅",
+        apkMissing: "The APK file isn't in the project yet. Upload sentence-generator.apk to your GitHub repository next to index.html.",
         sampleTitle: "Download sample Excel input files",
         sampleGirls: "Girls template 👧", sampleVerbs: "Verbs template ⚡", sampleBody: "Body parts template 💪", sampleBoys: "Boys template 👦",
         uploadTitle: "Upload a ready word list",
@@ -364,6 +394,14 @@ function renderChips(key) {
         frag.appendChild(more);
     }
     box.replaceChildren(frag);
+    updateClearReload();
+}
+
+// عندما تُمسح كل المدخلات يُستبدل زر «مسح» بزر «إعادة تحميل القيم الافتراضية»
+function updateClearReload() {
+    const allEmpty = ['ar', 'en'].every(l => KEYS.every(k => storage[l][k].length === 0));
+    $('btn-clear').hidden = allEmpty;
+    $('btn-reload').hidden = !allEmpty;
 }
 
 /* ---------- إدارة الكلمات ---------- */
@@ -489,6 +527,7 @@ function mixAllStorage() {
 }
 
 function clearAllData() {
+    if (!confirm(t('confirmClear'))) return;
     const snapshot = JSON.stringify({ storage, score: userScore });
     ['ar', 'en'].forEach(l => KEYS.forEach(k => { storage[l][k] = []; }));
     generatedSentences = [];
@@ -514,6 +553,84 @@ function clearAllData() {
             showToast(t('undone'));
         }
     });
+}
+
+/* ---------- القيم الافتراضية من مشروع GitHub ---------- */
+function sourceUrls() {
+    let { owner, repo, branch, file } = GITHUB_SOURCE;
+    if (!owner || !repo) {
+        const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+        if (m) {
+            owner = m[1];
+            repo = location.pathname.split('/')[1] || `${owner}.github.io`;
+        }
+    }
+    const urls = [];
+    if (owner && repo) {
+        [...new Set([branch, 'main', 'master'])].forEach(b =>
+            urls.push(`https://raw.githubusercontent.com/${owner}/${repo}/${b}/${file}`));
+    }
+    urls.push(file); // نسخة الموقع نفسه (للتجربة المحلية أو استضافة غير GitHub)
+    return urls;
+}
+
+// يقرأ كائن presets من نص script.js دون تنفيذ أي كود
+function parsePresets(text) {
+    const a = text.indexOf('let presets');
+    const start = a >= 0 ? a : text.indexOf('const presets');
+    if (start < 0) return null;
+    let end = text.indexOf('const BUILTIN_PRESETS', start);
+    if (end < 0) end = text.indexOf('const SHEET_HEADERS', start);
+    if (end < 0) end = text.length;
+    const block = text.slice(start, end).replace(/\/\/[^\n]*/g, '');
+
+    const strRe = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'/g;
+    const result = {};
+    ['ar', 'en'].forEach(lang => {
+        const lm = block.match(new RegExp(`\\b${lang}\\s*:\\s*\\{([\\s\\S]*?)\\}`));
+        if (!lm) return;
+        const lists = {};
+        for (const k of KEYS) {
+            const km = lm[1].match(new RegExp(`\\b${k}\\s*:\\s*\\[([\\s\\S]*?)\\]`));
+            if (!km) return;
+            const words = [...km[1].matchAll(strRe)]
+                .map(m => (m[1] !== undefined ? JSON.parse(`"${m[1]}"`) : m[2].replace(/\\'/g, "'")).trim())
+                .filter(Boolean);
+            if (!words.length) return;
+            lists[k] = [...new Set(words)];
+        }
+        result[lang] = lists;
+    });
+    return Object.keys(result).length ? result : null;
+}
+
+async function reloadDefaults() {
+    const btn = $('btn-reload');
+    btn.disabled = true;
+    showToast(t('loading'), null, 12000);
+
+    let data = null, source = 'builtin';
+    for (const url of sourceUrls()) {
+        try {
+            const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}nocache=${Date.now()}`, { cache: 'no-store' });
+            if (!res.ok) continue;
+            const parsed = parsePresets(await res.text());
+            if (parsed) { data = parsed; source = url.startsWith('https://raw.') ? 'github' : 'local'; break; }
+        } catch (e) { /* جرّب المصدر التالي */ }
+    }
+
+    const final = {};
+    ['ar', 'en'].forEach(l => { final[l] = (data && data[l]) || BUILTIN_PRESETS[l]; });
+    presets = final;
+    ['ar', 'en'].forEach(l => KEYS.forEach(k => { storage[l][k] = [...final[l][k]]; }));
+
+    const count = KEYS.reduce((n, k) => n + S()[k].length, 0);
+    KEYS.forEach(renderChips);
+    autoGenerate();
+    saveState();
+    playSoundEffect('success');
+    showToast(t(source === 'github' ? 'defaultsGithub' : source === 'local' ? 'defaultsLocal' : 'defaultsBuiltin', count), null, 5000);
+    btn.disabled = false;
 }
 
 /* ---------- النسخ ---------- */
@@ -729,6 +846,27 @@ async function downloadAll() {
     } catch (e) {
         showToast(t('libMissing'));
     }
+}
+
+/* ---------- تنزيل ملف APK ---------- */
+async function downloadAPK() {
+    const external = /^https?:\/\//i.test(APK_URL);
+    if (!external) {
+        try {
+            const res = await fetch(APK_URL, { method: 'HEAD', cache: 'no-store' });
+            const type = res.headers.get('content-type') || '';
+            if (!res.ok || type.includes('text/html')) throw new Error('missing');
+        } catch (e) {
+            return showToast(t('apkMissing'), null, 9000);
+        }
+    }
+    const a = document.createElement('a');
+    a.href = APK_URL;
+    a.download = 'sentence-generator.apk';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast(t('apkStarted'));
 }
 
 /* ---------- التثبيت والتحديث ---------- */

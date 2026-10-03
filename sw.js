@@ -1,6 +1,6 @@
-const VERSION = 'V8';
+const VERSION = 'V9';
 const CACHE = 'sgb-' + VERSION;
-const ASSETS = ['./', 'index.html', 'style.css', 'script.js', 'manifest.json', 'icon.svg'];
+const ASSETS = ['./', 'index.html', 'style.css', 'script.js', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
     e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -19,6 +19,7 @@ self.addEventListener('fetch', e => {
     if (req.method !== 'GET') return;
     const url = new URL(req.url);
     if (url.search.includes('nocache')) return;
+    if (url.pathname.endsWith('.apk')) return; // ملف APK كبير: لا يُخزَّن
 
     if (url.origin === location.origin) {
         // ملفات التطبيق: الشبكة أولاً (لتصلك التحديثات) ثم النسخة المخزنة عند انقطاع الإنترنت
