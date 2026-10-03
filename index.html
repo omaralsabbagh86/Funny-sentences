@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مكوّن الجمل الذكي المتعدد اللغات</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- مكتبات معالجة ملفات Excel و Word و FileSaver -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <div class="lang-switch">
+        <button class="lang-btn active" id="btn-ar" onclick="setLanguage('ar')">العربية</button>
+        <button class="lang-btn" id="btn-en" onclick="setLanguage('en')">English</button>
+    </div>
+
+    <h1 id="main-title">مكوّن الجمل العشوائي القواعدي 🎲</h1>
+    
+    <div class="tabs">
+        <button class="tab-btn active" id="tab-game" onclick="switchTab('game')">اللعب والادخال</button>
+        <button class="tab-btn" id="tab-io" onclick="switchTab('io')">الرفع والتنزيل</button>
+    </div>
+
+    <!-- تبويب اللعب والادخال -->
+    <div id="content-game" class="tab-content active">
+        <div id="stats" class="stats-badge">المخزون الحالي: 0 بنات | 0 أفعال | 0 أعضاء جسم | 0 شباب</div>
+
+        <div class="grid-inputs">
+            <div class="column-box">
+                <h3 id="lbl-girls">👧 5 أسماء بنات</h3>
+                <div class="input-group">
+                    <input type="text" class="girl-in" placeholder="بنت 1">
+                    <input type="text" class="girl-in" placeholder="بنت 2">
+                    <input type="text" class="girl-in" placeholder="بنت 3">
+                    <input type="text" class="girl-in" placeholder="بنت 4">
+                    <select class="girl-select" id="girl-sel" onchange="applySelectValue(this, 'girl-in')"></select>
+                </div>
+            </div>
+            <div class="column-box">
+                <h3 id="lbl-verbs">⚡ 5 أفعال (جذر مذكر)</h3>
+                <div class="input-group">
+                    <input type="text" class="verb-in" placeholder="مثال: غسل / wash">
+                    <input type="text" class="verb-in" placeholder="فعل 2">
+                    <input type="text" class="verb-in" placeholder="فعل 3">
+                    <input type="text" class="verb-in" placeholder="فعل 4">
+                    <select class="verb-select" id="verb-sel" onchange="applySelectValue(this, 'verb-in')"></select>
+                </div>
+            </div>
+            <div class="column-box">
+                <h3 id="lbl-body">💪 5 أعضاء جسم</h3>
+                <div class="input-group">
+                    <input type="text" class="body-in" placeholder="عضو 1">
+                    <input type="text" class="body-in" placeholder="عضو 2">
+                    <input type="text" class="body-in" placeholder="عضو 3">
+                    <input type="text" class="body-in" placeholder="عضو 4">
+                    <select class="body-select" id="body-sel" onchange="applySelectValue(this, 'body-in')"></select>
+                </div>
+            </div>
+            <div class="column-box">
+                <h3 id="lbl-boys">👦 5 أسماء شباب</h3>
+                <div class="input-group">
+                    <input type="text" class="boy-in" placeholder="شاب 1">
+                    <input type="text" class="boy-in" placeholder="شاب 2">
+                    <input type="text" class="boy-in" placeholder="شاب 3">
+                    <input type="text" class="boy-in" placeholder="شاب 4">
+                    <select class="boy-select" id="boy-sel" onchange="applySelectValue(this, 'boy-in')"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons-panel">
+            <button class="btn-mix-current" id="btn-mix-curr" onclick="mixCurrentRound()">توزيع عشوائي (هذه الجولة) 🔀</button>
+            <button class="btn-mix-all" id="btn-mix-all" onclick="mixAllStorage()">إعادة التوزيع للكل 🔄</button>
+            <button class="btn-clear" id="btn-clear" onclick="clearAll()">مسح كافة النتائج والمدخلات 🗑️</button>
+        </div>
+    </div>
+
+    <!-- تبويب الرفع والتنزيل -->
+    <div id="content-io" class="tab-content">
+        <div class="io-section">
+            <h4 id="lbl-upload-title">رفع كلمات مسبقة المضمون (.xlsx, .txt)</h4>
+            <select id="upload-target" style="margin-bottom: 10px;">
+                <option value="girls">الأسماء للبنات (Girls)</option>
+                <option value="verbs">الأفعال الجذعية (Verbs)</option>
+                <option value="bodyParts">أعضاء الجسم (Body Parts)</option>
+                <option value="boys">الأسماء للشباب (Boys)</option>
+            </select>
+            <input type="file" id="file-uploader" accept=".xlsx, .xls, .txt" onchange="handleUniversalUpload(event)">
+        </div>
+        
+        <div class="io-section">
+            <h4 id="lbl-download-title">تنزيل المستندات النهائية المتولدة</h4>
+            <div class="download-grid">
+                <button class="btn-download" onclick="downloadTXT()">ملف نصي TXT 📄</button>
+                <button class="btn-download" onclick="downloadExcel()">ملف إكسل Excel 📊</button>
+                <button class="btn-download" onclick="downloadWord()">ملف وورد Word 📝</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="results-container">
+    <h2 id="result-title">الجمل المتولدة ستظهر هنا...</h2>
+    <div id="results-list"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
